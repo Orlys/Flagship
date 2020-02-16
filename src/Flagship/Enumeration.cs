@@ -9,21 +9,21 @@ namespace Flagship
     using System.Reflection;
     using System.Runtime.InteropServices;
 
-    public class Enumerate
+    public class Enumeration
     {
-        private static readonly Dictionary<Type, Enumerate> s_table;
-        static Enumerate()
+        private static readonly Dictionary<Type, Enumeration> s_table;
+        static Enumeration()
         {
-            s_table = new Dictionary<Type, Enumerate>();
+            s_table = new Dictionary<Type, Enumeration>();
         }
 
-        public static Enumerate Create<TEnum>() where TEnum : struct, Enum => Create(typeof(TEnum));
+        public static Enumeration Create<TEnum>() where TEnum : struct, Enum => Create(typeof(TEnum));
 
-        public static Enumerate Create(Type enumType)
+        public static Enumeration Create(Type enumType)
         {
             if(!s_table.TryGetValue(enumType, out var e))
             {
-                e = new Enumerate(enumType);
+                e = new Enumeration(enumType);
                 s_table.Add(enumType, e);
             }
             return e;
@@ -42,6 +42,16 @@ namespace Flagship
         public ulong Mask { get; }
         public Enum All { get; }
 
+        public static Enum Or(Enum left, Enum right)
+        {
+            var t = left.GetType();
+            if (t != right.GetType())
+                throw new ArgumentNullException(nameof(right), "type mismatched");
+
+            var or = OrBuilder(Enum.GetUnderlyingType(t), t);
+            return (Enum)or.DynamicInvoke(left, right);
+        }
+
         private static Delegate OrBuilder(Type underlying, Type target)
         {
             var enumType = Expression.Parameter(underlying);
@@ -53,7 +63,7 @@ namespace Flagship
 
      
 
-        private Enumerate(Type enumType)
+        private Enumeration(Type enumType)
         {
             if (!enumType.IsEnum)
                 throw new NotSupportedException();

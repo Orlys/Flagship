@@ -8,11 +8,11 @@ namespace Flagship
         public EnumField(Enum e)
         {
             this.Value = e;
-            this.Info = Enumerate.Create(e.GetType());
+            this.Info = Enumeration.Create(e.GetType());
         }
 
         public readonly Enum Value;
-        public readonly Enumerate Info;
+        public readonly Enumeration Info;
 
         public static implicit operator Enum(EnumField unit)
         {
@@ -23,7 +23,7 @@ namespace Flagship
             return new EnumField(unit);
         }
 
-        public void Deconstruct(out Enum value, out Enumerate info)
+        public void Deconstruct(out Enum value, out Enumeration info)
         {
             value = this.Value;
             info = this.Info;

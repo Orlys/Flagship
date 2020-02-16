@@ -5,17 +5,17 @@ namespace Flagship
     {
         public void Deconstruct(out string name, out EnumField value)
         {
-            value = this.Value;
+            value = this.Field;
             name = this.Name;
         }
 
         public readonly string Name;
-        public readonly EnumField Value;
+        public readonly EnumField Field;
 
         public EnumVariable(string name, EnumField value)
         {
             this.Name = name;
-            this.Value = value;
+            this.Field = value;
         }
 
         public static implicit operator EnumVariable((string name, EnumField value) _)
