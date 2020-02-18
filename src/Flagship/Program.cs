@@ -257,7 +257,7 @@ namespace Flagship
 
         static void Main(string[] args)
         {
-#if TEST
+#if !TEST
             if(args.Length == 0)
             {
                 Console.WriteLine("[Error] path not selected");
