@@ -13,6 +13,7 @@ namespace Flagship
     using System.Reflection;
     using System.Runtime.InteropServices;
     using System.Text;
+    using System.Windows.Forms;
     using TextCopy;
     class Program
     {    
@@ -75,27 +76,211 @@ namespace Flagship
                     Console.CursorLeft--;
                 }
             }
-             
+        }
+         
+        const char selectedChar = '+';
+        const char emptyChar = ' ';
+        const string prefix = "    ";
+
+        const int sp = 4 + 1; // 4 = prefix.Length, 1 = "[".length
+
+        private static void HasFlags(Type t, Enumeration e, Action<EnumVariable> enqueue)
+        {
+            var valueCache = Activator.CreateInstance(t) as Enum;
+
+            var datumPoint = Console.CursorTop;
+            Console.WriteLine($"{prefix}[{ selectedChar }] skip");
+            for (int i = 0; i < e.Values.Length; i++)
+            {
+                var value = e.Values[i];
+                Console.WriteLine($"{prefix}[ ] { value } ({ Convert.ToDecimal(value) })");
+            }
+            var topPoint = Console.CursorTop - 1;
+            Console.CursorTop = datumPoint;
+            var list = new Dictionary<int, Enum>();
+            r:
+            Console.CursorLeft = sp;
+            var cursor = Console.ReadKey();
+
+            if (cursor.Key == ConsoleKey.UpArrow)
+            {
+                if (Console.CursorTop > datumPoint)
+                {
+                    Console.CursorLeft--;
+                    Console.Write(emptyChar);
+                    Console.CursorTop--;
+                }
+                Console.CursorLeft--;
+                Console.Write(selectedChar);
+                goto r;
+            }
+            else if (cursor.Key == ConsoleKey.DownArrow)
+            {
+                if (Console.CursorTop < topPoint)
+                {
+                    Console.CursorLeft--;
+                    Console.Write(emptyChar);
+                    Console.CursorTop++;
+                }
+                Console.CursorLeft--;
+                Console.Write(selectedChar);
+                goto r;
+            }
+            else if (cursor.KeyChar == selectedChar)
+            {
+                var top = Console.CursorTop;
+
+                var index = top - datumPoint -1;
+                Debug.WriteLine("cursor index: " + index);
+                if (index == -1)
+                {
+                    Console.CursorTop = top + e.Values.Length - 1;
+                    goto r;
+                }
+
+                var c = Console.CursorLeft; 
+                 
+                Console.CursorLeft = 2;
+
+                if (list.ContainsKey(index))
+                {
+                    Console.Write(emptyChar);
+                    list.Remove(index);
+                }
+                else
+                {
+                    Console.Write(selectedChar);
+                    list.Add(index, e.Values[index]);
+                }
+                Console.CursorLeft = c;
+                goto r;
+            }
+            else if (cursor.Key == ConsoleKey.Enter)
+            {
+                var index = Console.CursorTop - datumPoint; 
+                Console.CursorLeft = 0;
+
+                Console.CursorTop = datumPoint + e.Values.Length +1;
+                if (--index == -1)
+                {
+                    goto moveNext;
+                } 
+
+                valueCache = list.Values.Aggregate(valueCache, Enumeration.Or);
+                
+                if (Naming(out var name))
+                {
+                    enqueue((name, valueCache)); 
+                }
+                goto moveNext;
+            }
+            else
+            {
+                Console.CursorLeft = sp;
+                Console.Write(selectedChar);
+                goto r;
+            }
+
+        moveNext:
+            Console.WriteLine();
         }
 
+        private static void NonFlags(Type t, Enumeration e, Action<EnumVariable> enqueue)
+        {
+            var valueCache = Activator.CreateInstance(t) as Enum;
 
+            var datumPoint = Console.CursorTop;
+            Console.WriteLine($"{prefix}[{ selectedChar }] skip");
+            for (int i = 0; i < e.Values.Length; i++)
+            {
+                var value = e.Values[i];
+                Console.WriteLine($"{prefix}[ ] { value } ({ Convert.ToDecimal(value) })"); //{ (i == 0 ? selectedChar : ' ') }
+            }
+            var topPoint = Console.CursorTop - 1;
+            Console.CursorTop = datumPoint;
+
+            r:
+            Console.CursorLeft = sp;
+            var v = Console.ReadKey();
+            if (v.Key == ConsoleKey.UpArrow)
+            {
+                if (Console.CursorTop > datumPoint)
+                {
+                    Console.CursorLeft--;
+                    Console.Write(emptyChar);
+                    Console.CursorTop--;
+                }
+                Console.CursorLeft--;
+                Console.Write(selectedChar);
+                goto r;
+            }
+            else if (v.Key == ConsoleKey.DownArrow)
+            {
+                if (Console.CursorTop < topPoint)
+                {
+                    Console.CursorLeft--;
+                    Console.Write(emptyChar);
+                    Console.CursorTop++;
+                }
+                Console.CursorLeft--;
+                Console.Write(selectedChar);
+                goto r;
+            }
+            else if (v.Key == ConsoleKey.Enter)
+            {
+                var index = Console.CursorTop - datumPoint;
+                Console.CursorTop = topPoint + 1;
+                Console.CursorLeft = 0;
+
+                if (--index == -1)
+                    goto moveNext;
+                var selectedValue = e.Values[index];
+                valueCache = Enumeration.Or(valueCache, selectedValue);
+                if (Naming(out var name))
+                {
+                    enqueue((name, valueCache));
+                }
+                goto moveNext;
+            }
+            else
+            {
+                Console.CursorLeft = sp;
+                Console.Write(selectedChar);
+                goto r;
+            }
+
+            moveNext:
+            Console.WriteLine();
+        } 
 
         static void Main(string[] args)
         {
-            var builder = new ConfigurationBuilder();
-            builder.AddCommandLine(args, new Dictionary<string, string>
-            {
-                { "-p", "path" },
-            });
 
-            var config = builder.Build();
-            if (!(config["path"] is string path))
+            
+
+            //var builder = new ConfigurationBuilder();
+            //builder.AddCommandLine(args, new Dictionary<string, string>
+            //{
+            //    { "-p", "path" },
+            //});
+
+            //var config = builder.Build();
+            //if (!(config["path"] is string path))
+            //{
+            //    Console.WriteLine("[Error] path not selected");
+            //    Environment.Exit(-1);
+            //    return;
+            //} 
+            
+            if(args.Length == 0)
             {
                 Console.WriteLine("[Error] path not selected");
                 Environment.Exit(-1);
                 return;
             }
-            var file = new FileInfo(path);
+
+
+            var file = new FileInfo(args[0]);
             if (!file.Exists)
             {
                 Console.WriteLine("[Error] file not found");
@@ -119,90 +304,17 @@ namespace Flagship
                     Environment.Exit(-1);
                     return;
                 }
+                Console.CursorVisible = false;
 
-                const char selectedChar = '+';
-                const char emptyChar = ' ';
-                const string prefix = "    ";
-
-                var sp = prefix.Length + 1; // 1 = "[".length
                 foreach (var t in types)
                 {
-                    Console.CursorVisible = false;
-
-                    var valueCache = Activator.CreateInstance(t) as Enum; 
                     var e = Enumeration.Create(t);
-                    Console.WriteLine($"[Select] type: { t }{(e.HasFlags ? ", multi-selectable" : ", non-flags")}");
+                    Console.WriteLine($"[Select] type: { t }, {(e.HasFlags ? $"multi-selectable(press '{selectedChar}' to select and unselect item)" : "non-flags")}");
+                    var procedure = e.HasFlags ? new Action<Type, Enumeration, Action<EnumVariable>>(HasFlags) : NonFlags;
 
-                    var datumPoint = Console.CursorTop;
-                    Console.WriteLine($"{prefix}[{ selectedChar }] skip");
-                    for (int i = 0; i < e.Values.Length; i++)
-                    {
-                        var value = e.Values[i];
-                        Console.WriteLine($"{prefix}[ ] { value } ({ Convert.ToDecimal(value) })"); //{ (i == 0 ? selectedChar : ' ') }
-                    }
-                    var topPoint = Console.CursorTop - 1;
-                    Console.CursorTop = datumPoint;
+                    procedure(t, e, list.Enqueue);
 
-                    r:
-                    Console.CursorLeft = sp;
-                    var v = Console.ReadKey();
-                    if (v.Key == ConsoleKey.UpArrow)
-                    {
-                        if (Console.CursorTop > datumPoint)
-                        {
-                            Console.CursorLeft--;
-                            Console.Write(emptyChar);
-                            Console.CursorTop--;
-                        }
-                        Console.CursorLeft--;
-                        Console.Write(selectedChar);
-                        goto r;
-                    }
-                    else if (v.Key == ConsoleKey.DownArrow)
-                    {
-                        if (Console.CursorTop < topPoint)
-                        {
-                            Console.CursorLeft--;
-                            Console.Write(emptyChar);
-                            Console.CursorTop++;
-                        }
-                        Console.CursorLeft--;
-                        Console.Write(selectedChar);
-                        goto r;
-                    }
-                    else if (v.Key == ConsoleKey.Enter)
-                    {
-                        var index = Console.CursorTop - datumPoint;
-                        Console.CursorTop = topPoint + 1;
-                        Console.CursorLeft = 0;
-
-                        if (--index == -1)
-                            goto moveNext;
-                        var selectedValue = e.Values[index];
-                        valueCache = Enumeration.Or(valueCache, selectedValue);
-
-
-                        //if (e.HasFlags)
-                        //{
-                        //    Console.WriteLine("continue select? [Y/N]");
-                        //} 
-                        if (Naming(out var name))
-                        {
-                            list.Enqueue((name, valueCache));
-                        }
-                        goto moveNext;
-                    }
-                    else
-                    {
-                        Console.CursorLeft = sp;
-                        Console.Write(selectedChar);
-                        goto r;
-                    }
-
-                    moveNext:
-                    Console.WriteLine();
                 }
-
             }
 
             Console.CursorVisible = true;
@@ -213,12 +325,15 @@ namespace Flagship
                 goto restart;
             }
 
+
+            var table = new ConsoleTables.ConsoleTable("type", "variable name", "value", "has flags");
             foreach (var item in list)
             {
-                Console.WriteLine($"[Selected]: { item.Name }: { item.Field.Info.EnumType.Name }.{item.Field.Value}");
+                table.AddRow(item.Field.Info.EnumType, item.Name, item.Field.Value, item.Field.Info.HasFlags);
             }
+            table.Write(ConsoleTables.Format.Alternative);
+             
             Console.WriteLine();
-
             var enc = Flags.Encode(list);
 
 
@@ -231,14 +346,10 @@ namespace Flagship
             YesOrNoQuestion.Builder
                 .Title("Choose")
                 .Question("copy code?")
-                .Positive(() =>
-                {
-                    Clipboard.SetText(code);
-                    Console.WriteLine();
-                })
+                .Positive(() => TextCopy.Clipboard.SetText(code))
                 .Negative(() =>
                 {
-                    Console.WriteLine(Environment.NewLine);
+                    Console.WriteLine();
                     Console.WriteLine("===========================================");
                     Console.BackgroundColor = ConsoleColor.DarkBlue;
                     Console.WriteLine(code);
@@ -254,11 +365,7 @@ namespace Flagship
             if (YesOrNoQuestion.Builder
                .Title("Choose")
                .Question("rebuild?")
-               .Positive(() =>
-               {
-                   list.Clear();
-                   Console.Clear();
-               })
+               .Positive(new Action(Console.Clear) + list.Clear)
                .Build()
                .Ask())
                 goto start;

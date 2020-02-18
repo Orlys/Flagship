@@ -5,8 +5,6 @@
 
     public class Flags
     {
-
-         
         public static Encoded Encode(EnumVariable first, EnumVariable second, params EnumVariable[] rest)
         {
             var list = new List<EnumVariable> { first, second };

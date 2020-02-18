@@ -3,6 +3,7 @@ namespace Flagship
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -54,31 +55,11 @@ namespace Flagship
 
             var unit = tree.GetCompilationUnitRoot();
 
-            var enums = unit
+            var tasks = unit
                 .DescendantNodes()
                 .OfType<EnumDeclarationSyntax>()
                 .Where(e => !e.GetDiagnostics().Any(x => x.Severity.Equals(DiagnosticSeverity.Error)));
 
-            var tasks = new Queue<EnumDeclarationSyntax>();
-
-            foreach (var e in enums)
-            {
-                var c = e;
-
-                foreach (var m in e.Members)
-                {
-                    if (m.AttributeLists.Any())
-                    {
-                        foreach (var a in m.AttributeLists)
-                        {
-                            c = e.RemoveNode(a, SyntaxRemoveOptions.KeepNoTrivia);
-                            unit = unit.RemoveNode(a, SyntaxRemoveOptions.KeepNoTrivia);
-                        }
-                    }
-                }
-                tasks.Enqueue(c);
-                //Console.WriteLine(c);
-            }
             var q = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("_"), AssemblyBuilderAccess.RunAndCollect);
             var b = q.DefineDynamicModule("_");
 
@@ -90,8 +71,21 @@ namespace Flagship
                 var addOne = AddOneBuilder(underlyingType);
                 var makeZero = MakeZeroBuilder(underlyingType);
                 var tryParse = TryParseBuilder(underlyingType);
-
+                 
+                
                 var enumBuilder = b.DefineEnum(i.Identifier.Text, TypeAttributes.Public, underlyingType);
+                foreach (var a in i.AttributeLists.SelectMany(x => x.Attributes))
+                {
+                    switch (a.Name.ToString())
+                    {
+                        case "FlagsAttribute":
+                        case "Flags":
+                            var attributeBuilder = new CustomAttributeBuilder(typeof(FlagsAttribute).GetConstructor(Type.EmptyTypes), Array.Empty<object>());
+                            enumBuilder.SetCustomAttribute(attributeBuilder);
+                            break;
+                    }
+                }
+
                 var indexer = new Dictionary<string, ValueType>();
                 ValueType last = null;
 
@@ -202,6 +196,7 @@ namespace Flagship
                  
                 var e = enumBuilder.CreateTypeInfo();
                 var et = e.AsType();
+
                 //Console.WriteLine("[Info] created reflection type: " + et.FullName);
                 yield return et;
             }

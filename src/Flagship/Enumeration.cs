@@ -42,25 +42,42 @@ namespace Flagship
         public ulong Mask { get; }
         public Enum All { get; }
 
+        public static Enum ComplementedAnd(Enum subtracted, Enum minus)
+        { 
+            var t = subtracted.GetType();
+            if (t != minus.GetType())
+                throw new ArgumentNullException(nameof(minus), "type mismatched");
+            var underlying = Enum.GetUnderlyingType(t);
+
+            var eSub = Expression.Parameter(underlying);
+            var eMinus = Expression.Parameter(underlying); 
+
+            var body = Expression.OnesComplement(eMinus) as Expression;
+            body = Expression.And(eSub, body);
+            body = Expression.Convert(body, t);
+
+            var expr = Expression.Lambda(body, eSub, eMinus).Compile();
+            return expr.DynamicInvoke(subtracted, minus) as Enum;
+        } 
+
         public static Enum Or(Enum left, Enum right)
         {
             var t = left.GetType();
             if (t != right.GetType())
                 throw new ArgumentNullException(nameof(right), "type mismatched");
 
-            var or = OrBuilder(Enum.GetUnderlyingType(t), t);
-            return (Enum)or.DynamicInvoke(left, right);
-        }
+            var underlying = Enum.GetUnderlyingType(t);
 
-        private static Delegate OrBuilder(Type underlying, Type target)
-        {
             var enumType = Expression.Parameter(underlying);
-            var enumR = Expression.Parameter(underlying); 
-            var body = Expression.Or(enumType, enumR) as Expression;
-            body = Expression.Convert(body, target); 
-            return Expression.Lambda(body, enumType, enumR).Compile();
-        } 
+            var enumR = Expression.Parameter(underlying);
 
+            var body = Expression.Or(enumType, enumR) as Expression;
+            body = Expression.Convert(body, t);
+
+            var expr = Expression.Lambda(body, enumType, enumR).Compile(); 
+            return expr.DynamicInvoke(left, right) as Enum;
+        }
+         
      
 
         private Enumeration(Type enumType)
@@ -108,16 +125,16 @@ namespace Flagship
 
                         if (this.HasFlags)
                         {
-                            var orAssign = OrBuilder(this.UnderlyingType, enumType);
+                            var orAssign = new Func<Enum, Enum, Enum>(Or);
                             var defaultEnum = Activator.CreateInstance(this.EnumType) as Enum;
                             var max = defaultEnum;
                             this.All = defaultEnum;
                             foreach (Enum v in values)
                             {
-                                this.All = (Enum)orAssign.DynamicInvoke(this.All, v);
+                                this.All = orAssign(this.All, v);
                                 if (hashset.Add(v))
                                     if (v.CompareTo(defaultEnum) > 0)
-                                        max = (Enum)orAssign.DynamicInvoke(max, v);
+                                        max = orAssign(max, v);
                             }
                             this.Max = max;
                             this.Values = hashset.ToArray();
