@@ -16,7 +16,9 @@ namespace Flagship
     using System.Windows.Forms;
     using TextCopy;
     class Program
-    {    
+    {
+
+
         private static bool Naming(out string name)
         {
             Console.CursorVisible = true;
@@ -39,7 +41,8 @@ namespace Flagship
                         Console.CursorLeft = 0;
                         if (char.IsDigit(sb[0]))
                             sb.Insert(0, '_');
-                        name = sb.ToString(); 
+                        name = sb.ToString();
+
                         Console.CursorVisible = false;
                         return true;
                     }
@@ -131,7 +134,6 @@ namespace Flagship
                 var top = Console.CursorTop;
 
                 var index = top - datumPoint -1;
-                Debug.WriteLine("cursor index: " + index);
                 if (index == -1)
                 {
                     Console.CursorTop = top + e.Values.Length - 1;
@@ -255,39 +257,25 @@ namespace Flagship
 
         static void Main(string[] args)
         {
-
-            
-
-            //var builder = new ConfigurationBuilder();
-            //builder.AddCommandLine(args, new Dictionary<string, string>
-            //{
-            //    { "-p", "path" },
-            //});
-
-            //var config = builder.Build();
-            //if (!(config["path"] is string path))
-            //{
-            //    Console.WriteLine("[Error] path not selected");
-            //    Environment.Exit(-1);
-            //    return;
-            //} 
-            
+#if TEST
             if(args.Length == 0)
             {
                 Console.WriteLine("[Error] path not selected");
                 Environment.Exit(-1);
                 return;
-            }
+            } 
+            var path = args[0];
+#else 
+            var path = "./Test.cs";
+#endif
 
-
-            var file = new FileInfo(args[0]);
+            var file = new FileInfo(path);
             if (!file.Exists)
             {
                 Console.WriteLine("[Error] file not found");
                 Environment.Exit(-1);
                 return;
             }
-
              
             var list = new Queue<EnumVariable>();
             start:
@@ -309,7 +297,9 @@ namespace Flagship
                 foreach (var t in types)
                 {
                     var e = Enumeration.Create(t);
-                    Console.WriteLine($"[Select] type: { t }, {(e.HasFlags ? $"multi-selectable(press '{selectedChar}' to select and unselect item)" : "non-flags")}");
+                    Console.WriteLine($"[Select] type: { t }, {(e.HasFlags ? "multi-selectable" : "non-flags")}");
+                    if(e.HasFlags)
+                        Console.WriteLine($"[Info] press '{selectedChar}' to select and unselect item");
                     var procedure = e.HasFlags ? new Action<Type, Enumeration, Action<EnumVariable>>(HasFlags) : NonFlags;
 
                     procedure(t, e, list.Enqueue);

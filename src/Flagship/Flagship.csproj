@@ -8,6 +8,16 @@
     <Copyright>Copyright © Orlys 2020</Copyright>
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Test.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Test.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="ConsoleTables" Version="2.4.0" />

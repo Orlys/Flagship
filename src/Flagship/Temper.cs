@@ -78,6 +78,8 @@ namespace Flagship
                 {
                     switch (a.Name.ToString())
                     {
+                        case "System.Flags":
+                        case "System.FlagsAttribute":
                         case "FlagsAttribute":
                         case "Flags":
                             var attributeBuilder = new CustomAttributeBuilder(typeof(FlagsAttribute).GetConstructor(Type.EmptyTypes), Array.Empty<object>());
